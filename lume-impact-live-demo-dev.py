@@ -589,11 +589,10 @@ def run1():
 if __name__ == '__main__':
     # TODO debug mode
     import traceback
-    import time
 
     _ITERATION_MIN_FREQUENCY_SECS = 5 * 60
     while True:
-        start_time = time.time()
+        start_time = time()
         try:
             result = run1()
             sleep(10)
@@ -608,8 +607,8 @@ if __name__ == '__main__':
                 logger.info('Something BAD happened. Sleeping for 10 s ...')
                 sleep(10)
         finally:
-            elapsed_time = time.time() - start_time
+            elapsed_time = time() - start_time
             if elapsed_time < _ITERATION_MIN_FREQUENCY_SECS:
                 s = _ITERATION_MIN_FREQUENCY_SECS - elapsed_time
                 logger.info(f'Sleeping for {s} seconds')
-                time.sleep(s)
+                sleep(s)
