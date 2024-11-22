@@ -3,22 +3,8 @@
 
 # # Live cu-inj-live-impact 
 
-# In[46]:
-
-
-# Setup directories, and convert dashboard notebook to a script for importing
-#!./setup.bash
-print("Running LUME IMPACT SERVICE.....")
-
-
-# In[47]:
-
-
 get_ipython().run_line_magic('load_ext', 'autoreload')
 get_ipython().run_line_magic('autoreload', '2')
-
-
-# In[48]:
 
 
 from impact import evaluate_impact_with_distgen, run_impact_with_distgen
@@ -35,8 +21,7 @@ import matplotlib as mpl
 
 from pmd_beamphysics.units import e_charge
 
-
-# In[49]:
+from pprint import pprint, pformat
 
 
 import pandas as pd
@@ -60,9 +45,6 @@ mpl.use('Agg')
 
 # Nicer plotting
 get_ipython().run_line_magic('config', "InlineBackend.figure_format = 'retina'")
-
-
-# In[ ]:
 
 
 #Sanity Checks for OS Environments
@@ -92,11 +74,6 @@ def replaceEnvironmentFiles(file_location):
     return file_location
 
 
-# # Top level config
-
-# In[ ]:
-
-
 import argparse
 
 parser = argparse.ArgumentParser()
@@ -108,17 +85,11 @@ parser.add_argument("-t", "--host", help = "Mention the host", default = "singul
 parser.add_argument("-p", "--num_procs", help = "Mention the Num Procs", default = 64)
 
 
-# In[ ]:
-
-
 def convertStringToBoolean(argument):
     if argument == 'True' or argument == 'true' or argument == True:
         return True
     else:
         return False
-
-
-# In[52]:
 
 
 args = vars(parser.parse_args())
@@ -136,8 +107,6 @@ config = toml.load(f"configs/{HOST}_{MODEL}.toml")
 PREFIX = f'lume-impact-live-demo-{HOST}-{MODEL}'
 
 
-# In[ ]:
-
 
 def convertToDatedFormat(destionation_folder):
     curr_date = datetime.date.today()
@@ -151,9 +120,6 @@ def convertToDatedFormat(destionation_folder):
 
 
 # ## Logging
-
-# In[54]:
-
 
 import logging
 from logging.handlers import RotatingFileHandler
@@ -180,9 +146,6 @@ file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
 
 
-# In[ ]:
-
-
 #Arguments -
 
 logger.info('Start of Script Marker - Script Running with Arguments - ')
@@ -192,13 +155,10 @@ logger.info(f'LIVE - {LIVE}')
 logger.info(f'MODEL - {MODEL}')
 logger.info(f'HOST - {HOST}')
 logger.info(f'NUM_PROCS_ARGS - {NUM_PROCS_ARGS}')
-logger.info(f'Config TOML Loaded - {config}')
+logger.info(f'Config TOML Loaded:\n{pformat(config)}')
 
 
 # ## Utils
-
-# In[55]:
-
 
 # Saving and loading
 def save_pvdata(filename, pvdata, isotime):
@@ -229,8 +189,6 @@ def load_pvdata(filename):
 # Set up basic input sources and output path, loaded from toml environment file.
 # 
 # See README for required toml definition.
-
-# In[56]:
 
 
 HOST = config.get('host') # mcc-simul or 'sdf'
@@ -281,10 +239,6 @@ if HOST == 'sdf':
        raise ValueError("impact_command_mpi not defined in toml.")
 
 
-
-# In[57]:
-
-
 CONFIG0 = {}
 
 # Base settings
@@ -301,6 +255,7 @@ SETTINGS0['numprocs'] = NUM_PROCS
 CONFIG0["workdir"] = replaceEnvironmentFiles(get_path('workdir'))
 
 if DEBUG:
+    logger.setLevel(logging.DEBUG)
     logger.info('DEBUG MODE: Running without space charge for speed. ')
     SETTINGS0['distgen:n_particle'] = 1000
     SETTINGS0['total_charge'] = 0
@@ -320,11 +275,7 @@ else:
     raise ValueError(f'Unknown host: {HOST}')
     
 
-
 # # Select: LCLS or FACET
-
-# In[59]:
-
 
 # PV -> Sim conversion table
 CSV =  f'pv_mapping/{MODEL}_impact.csv'  
@@ -386,25 +337,15 @@ else:
     raise
 
 
-# In[60]:
-
-
 CONFIG0, SETTINGS0
-logger.info(f'FINAL SETTINGS - {SETTINGS0}')
+logger.info(f'FINAL SETTINGS:\n{pformat(SETTINGS0)}')
 
 
 # # Set up monitors
 
-# In[61]:
-
-
 # Gun: 700 kV
 # Buncher: 200 keV energy gain
 # Buncher: +60 deg relative to on-crest
-
-
-# In[62]:
-
 
 DF = pd.read_csv(CSV)#.dropna()
 
@@ -417,17 +358,10 @@ else:
 #DF.set_index('device_pv_name', inplace=True)
 DF
 
-
-# In[63]:
-
-
 if LIVE:
     MONITOR = {pvname:epics.PV(pvname) for pvname in PVLIST}
     SNAPSHOT = None
     sleep(5)
-
-
-# In[64]:
 
 
 def get_snapshot(snapshot_file=None):
@@ -484,8 +418,6 @@ def get_snapshot(snapshot_file=None):
 
 # # EPICS -> Simulation settings
 
-# In[66]:
-
 
 def get_settings(csv, base_settings={}, snapshot_dir=None, snapshot_file=None):
     """
@@ -537,9 +469,6 @@ def get_settings(csv, base_settings={}, snapshot_dir=None, snapshot_file=None):
     return settings, df, img, cutimg, itime
 
 
-# In[69]:
-
-
 DO_TIMING = False
 
 if DO_TIMING:
@@ -562,8 +491,6 @@ if DO_TIMING:
 
 
 # # Get live values, run Impact-T, make dashboard
-
-# In[70]:
 
 
 # Patch this into the function below for the dashboard creation
@@ -593,9 +520,6 @@ def my_merit(impact_object, itime):
     return merit0
 
 
-# In[71]:
-
-
 def run1():
     dat = {}
 
@@ -604,10 +528,13 @@ def run1():
     SUMMARY_OUTPUT_DIR_DATED = convertToDatedFormat(SUMMARY_OUTPUT_DIR)
         
     # Acquire settings
-    mysettings, df, img, cutimg, itime = get_settings(CSV,
-                                                           SETTINGS0,
-                                                           snapshot_dir=SNAPSHOT_DIR_DATED,
-                                                          snapshot_file=SNAPSHOT)        
+    mysettings, df, img, cutimg, itime = get_settings(
+        CSV,
+        SETTINGS0,
+        snapshot_dir=SNAPSHOT_DIR_DATED,
+        snapshot_file=SNAPSHOT)        
+
+
     dat['isotime'] = itime
     
     # Record inputs
@@ -617,17 +544,37 @@ def run1():
     
     logger.info(f'Running evaluate_impact_with_distgen...')
 
+    logger.info("##########################  START SETTINGS INFO OUTPUT #######################")
+    logger.info(f"Settings acquired are:")
+    logger.info(f'dat:\n{pformat(dat)}')
+    logger.info(f'img:\n{pformat(img)}')
+    logger.info(f'cutimg:\n{pformat(cutimg)}')
+    logger.info(f'itime:\n{pformat(itime)}')
+    logger.info("##########################  /END SETTING INFO OUTPUT ##########################")
+
     t0 = time()
     
     total_charge_pC = mysettings['distgen:total_charge:value']
+
+    # TODO disabled just for dev testing during PAMM outage
     if total_charge_pC < MIN_CHARGE_pC:
         logger.info(f'total charge is too low: {total_charge_pC:.2f} pC, skipping')
-        return dat
+        if DEBUG:
+            logger.debug("##########################  DEBUG!! ##############################")
+            logger.info('DEBUG mode enabled: continuing even though charge is too low!')
+            logger.debug("##########################  /END DEBUG ###########################")
+        else:
+            return dat
     
-    outputs = evaluate_impact_with_distgen(mysettings,
-                                       merit_f=lambda x: my_merit(x, itime),
-                                       archive_path=ARCHIVE_DIR_DATED,
-                                       **CONFIG0, verbose=True )
+    # TODO rm debugger breakpoint
+    if DEBUG:
+        breakpoint()
+
+    outputs = evaluate_impact_with_distgen(
+        mysettings,
+        merit_f=lambda x: my_merit(x, itime),
+        archive_path=ARCHIVE_DIR_DATED,
+        **CONFIG0, verbose=True)
     
     dat['outputs'] =  outputs   
     logger.info(f'...finished in {(time()-t0)/60:.1f} min')
@@ -637,15 +584,12 @@ def run1():
     logger.info(f'Summary output written: {fname}')
     return dat
     
-
-
 # # loop it
 # 
-
-# In[78]:
-
-
 if __name__ == '__main__':
+    # TODO debug mode
+    import traceback
+
     while True:
         try:
             result = run1()
@@ -653,16 +597,11 @@ if __name__ == '__main__':
         except Exception as e:
             logger.info(e)
             if (e.__class__.__name__ == 'Exception'):
+                logger.exception(traceback.format_exc())
                 logger.info('Stopping the Program')
                 break
             else:
+                logger.debug(traceback.format_exc())
                 logger.info('Something BAD happened. Sleeping for 10 s ...')      
                 sleep(10)
             
-
-
-# In[ ]:
-
-
-
-

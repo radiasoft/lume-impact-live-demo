@@ -1,0 +1,108 @@
+* env updated with pydantic: environment-dev.yml
+
+* use command
+
+* updated env var files etc;
+    configs/s3df_sc_inj.toml
+    environment-dev.yml
+    lume-impact-live-demo.py
+    pv_mapping/sc_inj_impact.csv
+
+* more env vars from jb's personal dirs
+    _sample_mappings_and_confs/
+    * logging to ~/lume-output/logs/
+
+* test command
+. _sample_mappings_and_confs/prodOnDev.bash
+. _sample_mappings_and_confs/setup-env-vars.bash
+ipython lume-impact-live-demo.py -- -t "s3df"
+
+* dev version with total_charge_pC sanity check disabled so we can run during PAMM
+  and full tracebacks logged, and any other changes during initial basic debug work
+
+ipython lume-impact-live-demo.py -- -t "s3df"
+
+
+(the list-index-out-of-range  error in impact.py likely due to ImpactTexe binary failure
+need to troubleshoot this and confirm installation
+)
+
+------------------------
+$ ~/miniconda3/envs/lume-live-dev/bin/ImpactTexe
+Primary job  terminated normally, but 1 process returned
+a non-zero exit code. Per user-direction, the job has been aborted.
+--------------------------------------------------------------------------
+#0  0x7ff0d07f995d in already_open
+	at ../../../libgfortran/io/open.c:742
+#1  0x557817ac3623 in ???
+#2  0x557817ae34f5 in ???
+#3  0x557817a58099 in ???
+#4  0x7ff0cff19cf2 in ???
+#5  0x557817a580f9 in ???
+#6  0xffffffffffffffff in ???
+--------------------------------------------------------------------------
+mpirun detected that one or more processes exited with non-zero status, thus causing
+the job to be terminated. The first process to do so was:
+
+  Process name: [[1008,1],0]
+  Exit code:    2
+------------------------
+
+
+
+looks like CM's lume-impact pip install was commented out of the conda yml in lume-impact-live-demo.
+Trying to re-enable it, as it includes impact-t=*=mpi_openmpi*.
+
+
+######################################################################
+## Notes from session with Jingyi 2024-11-13
+# environment2-jingyi-export.yml was created from jingyi's working env
+# (before installing via the full export,
+# ImpactTexe-mpi was throwing an error re: libcudart.so2, even if bin copied from her conda env)
+
+conda env create --name lume-live-dev-jingyi-export -f environment2-jingyi-export.yml 
+
+# lume-live was not found in pypi, so we then installed it via:
+pip install git+https://github.com/slaclab/lcls-live
+
+
+# mpi_run_cmd="salloc --partition milano --account ad:ard-online -N 1 -n {nproc} mpirun -n {nproc} {command_mpi}"
+################################
+# working notebook is:
+# jingyi_lume-impact-live-demo.ipynb
+
+# After confirming jupyter notebook was running, I re-exported my env to 
+# environment2-mokun-working-export.yml
+
+################################
+# Jupyter container setup
+#!/usr/bin/env bash
+
+# Launch the Jupyter server
+export CONDA_PREFIX=//sdf/home/m/mokun/miniconda3
+export PATH=${CONDA_PREFIX}/bin/:$PATH
+source ${CONDA_PREFIX}/etc/profile.d/conda.sh
+conda env list
+conda activate lume-live-dev-jingyi-export
+
+export EPICS_PVA_SERVER_PORT=5075
+export EPICS_PVA_BROADCAST_PORT=5076
+export EPICS_PVA_AUTO_ADDR_LIST=FALSE
+export EPICS_PVA_ADDR_LIST="lcls-prod01:5068"
+export EPICS_PVA_ADDR_LIST="${EPICS_PVA_ADDR_LIST} lcls-prod01:5063"
+export EPICS_PVA_ADDR_LIST="${EPICS_PVA_ADDR_LIST} mcc-dmz mccas0.slac.stanford.edu"
+export EPICS_CA_AUTO_ADDR_LIST=NO
+export EPICS_CA_ADDR_LIST="lcls-prod01:5068 lcls-prod01:5063 mcc-dmz"
+export EPICS_CA_REPEATER_PORT="5069"
+export EPICS_CA_SERVER_PORT="5068"
+export EPICS_TS_NTP_INET="134.79.48.11"
+export EPICS_IOC_LOG_INET="134.79.151.21"
+
+# Set notebook directory
+cd "${NOTEBOOK_ROOT}"
+jupyter lab   --config="${CONFIG_FILE}"
+
+################################
+
+##
+######################################################################

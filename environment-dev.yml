@@ -7,6 +7,7 @@ dependencies:
   - ipykernel
   - jupyterlab
   - pandas
+  - pydantic
   - pyepics
   - scikit-image
   - toml
@@ -14,7 +15,8 @@ dependencies:
   - distgen
   - pip
   - pip:
-#    - git+https://github.com/christophermayes/lume-impact
+    # TODO may not need this. Does it fix ImactTexe installation?
+    - git+https://github.com/christophermayes/lume-impact
     - git+https://github.com/slaclab/lcls-live
 
   

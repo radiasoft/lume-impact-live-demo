@@ -136,3 +136,8 @@ snapshot/
 archive/
 SCRATCH/
 output/
+
+
+#Ignore vi temp files
+*.swp
+*.swo
